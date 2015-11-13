@@ -1,4 +1,4 @@
-clear all
+clearvars -except slnew bip_day
 Rsun = 696000;
 tau = 365.25;
 invtau = 1/tau;
@@ -8,13 +8,13 @@ theta = 0:pi/180:pi;
 B0 = 10;
 v0 = 1382.4;
 Binit = B0*sign(pi/2-theta).*exp(-exp(pi-2.*abs(pi/2-theta)).*v0/(4*eta).*(sin(2.*abs(pi/2-theta))+cos(2.*abs(pi/2-theta))));
-alth = zeros(maxl+1,181);
-Mll = zeros(maxl);
-Yl = zeros(maxl+1,181);
 
 % Store Legendre polynomials and calculate al(0)
 
-leg = zeros(maxl+1,181);
+leg = zeros(maxl+1,length(theta));
+Yl = zeros(maxl+1,length(theta));
+alth = zeros(maxl+1,length(theta));
+
 for l=0:maxl
      m = legendre(l,cos(theta));
      leg(l+1,:) = m(1,:);
@@ -27,8 +27,8 @@ ainit = trapz(theta,alth');
 % Velocity profile and derivative
 
 v = -v0.*sin(2*theta).*exp(pi-2.*abs(pi/2 - theta));
-deriv = zeros(1,181);
-for i = 1:181
+deriv = zeros(1,length(theta));
+for i = 1:length(theta)
 if theta(i) <= pi/2
    deriv(i) = -2*v0.*exp(2*theta(i)).*(cos(2*theta(i)) + sin(2*theta(i)));
 else
@@ -37,6 +37,8 @@ end
 end
 
 % Block matrices
+
+Mll = zeros(maxl);
 
 for l=0:maxl
    for lp=0
@@ -54,16 +56,48 @@ for l=0:maxl
    end
 end
 
-% Solve for al(t)
+% Solve for al(t), including new BMRs
 
-odematrix = @(t,a) Mll*a;
-tspan = 0:12730;
-[T,A] = ode45(odematrix,tspan,ainit);
+tspan = 0:13000;
+A2(1,:) = ainit;
+sz2 = size(A2);
+A = [];
+
+[T1,A1] = ode45(@odematrix,1:219,A2(sz2(1),:),[],Mll); 
+sz1 = size(A1);
+[T2,A2] = ode45(@odematrix2,219:220,A1(sz1(1),:),[],Mll,slnew(1,:));
+sz2 = size(A2);
+A = [A;A1;A2];
+iprev = 220; 
+
+for i = 219:4240
+    for j = 2:5474
+        if bip_day(j) == i
+            if bip_day(j) == bip_day(j+1)
+                slnew(j+1,:) = slnew(j+1,:) + slnew(j,:);
+                continue
+            elseif bip_day(j)-bip_day(j-1) > 1
+                [T1,A1] = ode45(@odematrix,tspan(iprev):tspan(i+1),A2(sz2(1),:),[],Mll); 
+                sz1 = size(A1);
+                [T2,A2] = ode45(@odematrix2,tspan(i+1):tspan(i+2),A1(sz1(1),:),[],Mll,slnew(j,:));
+                sz2 = size(A2);
+                A = [A;A1;A2];
+                iprev = i+2;
+            else
+                sza = size(A);
+                [T2,A2] = ode45(@odematrix2,tspan(i+1):tspan(i+2),A(sza(1),:),[],Mll,slnew(j,:));
+                sz2 = size(A2);
+                A = [A;A2];
+                iprev = i+2;
+            end
+        end
+    end
+end
 
 % Reconstruct B
 
-B = zeros(length(A),181);
 B = A*Yl;
 
-h = surf(B);
-set(h,'edgecolor','none');
+pcolor(B')
+shading interp
+colorbar
