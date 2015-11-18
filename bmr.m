@@ -1,3 +1,4 @@
+function [bip_day slnew] = bmr
 clear all
 delta = 180/pi;
 Rsun = 696000;
@@ -12,14 +13,14 @@ x = sin(th).*cos(ph);
 y = sin(th).*sin(ph);
 z = cos(th);
 
-%Store Legendre polynomials
+% Store Legendre polynomials
 
 maxl = 128;
 leg = zeros(maxl+1,181);
 Yl = zeros(maxl+1,181);
 Ysph = zeros(maxl+1,181);
 
-progressbar('onedmodel.m')
+%progressbar('Getting bmrs...')
 
 for l=0:maxl
   m = legendre(l,cos(theta));
@@ -59,12 +60,18 @@ zp = -cos(bip_tilt(i)).*sin(bip_lat(i)).*x + sin(bip_tilt(i)).*y + cos(bip_tilt(
 phip = delta.*atan2(yp,xp);
 lambdap = delta.*asin(zp);
 B = -(bip_flux(i).*(delta^2)/(sqrt(pi).*(bip_sep(i)^3))).*phip.*exp(-(phip.^2 + 2.*(lambdap.^2))/(2.*(bip_sep(i)^2)));
+
+% Integrate in phi
+
 Bnew(:,i) = trapz(phi,B',2);
+
+% Obtain spherical harmonic time-components
 
 for l=0:maxl
 sl2 = Ysph(l+1,:).*Bnew(:,i)';
 slnew(i,l+1) = trapz(theta,sl2');
 end
 
-progressbar(i/nbips)
+%progressbar(i/nbips)
+end
 end
