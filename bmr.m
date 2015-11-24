@@ -49,9 +49,9 @@ slnew = zeros(nbips,maxl+1);
 for i=1:nbips
 bip_day(i) = bmrs(i+1,1);
 bip_lon(i) = (pi/180)*bmrs(i+1,2);
-bip_lat(i) = -(pi/180)*bmrs(i+1,3);
+bip_lat(i) = (pi/180)*bmrs(i+1,3);
 bip_sep(i) = bmrs(i+1,4);
-bip_flux(i) = bmrs(i+1,5)/(Rsun^2);
+bip_flux(i) = bmrs(i+1,5)/((Rsun^2)*(10^10));
 bip_tilt(i) = (pi/180)*bmrs(i+1,6);
 
 xp = cos(bip_lat(i)).*x + sin(bip_lat(i)).*z;
